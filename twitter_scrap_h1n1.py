@@ -16,6 +16,7 @@ def collect(username):
         c.Until = end_date.strftime("%Y-%m-%d")
         c.Since = start_date.strftime("%Y-%m-%d")
         c.Store_csv = True
+        c.Profile_full = True
         c.Output = username + '_h1n1.csv'
         twint.run.Search(c)
     
