@@ -3,6 +3,7 @@ from datetime import timedelta
 import argparse
 import os
 import json
+import pandas as pd
 
 import newspaper
 # from newspaper import Article
@@ -69,16 +70,72 @@ def collect_news(base_url, sdate, edate):
         with open(output_path, 'w+') as f:
             f.write(json.dumps(day_data))
 
+def collect_news_tiny(url, sdate, edate):
+
+    missing = []
+    all_urls = []
+
+    output_path = os.path.join('output', url[-5:]+'.json')
+
+    print(url)
+    nn = newspaper.build(url, memoize_articles=False)
+
+    print(len(nn.articles))
+
+    day_data = []
+    for article in nn.articles:
+        # if len(day_data) > 3:
+        #     break
+
+        try:
+            article.download()
+            article.parse()
+        except Exception as e:
+            print(e)
+            missing.append({'base': base_url, 'day': day.strftime("%Y-%m-%d"), 'article_url': article.url})
+
+        publish_date = article.publish_date
+        if publish_date is None:
+            publish_date = day
+
+        article_data = {
+            'url': article.url,
+            'publish_data': publish_date.strftime("%Y-%m-%d"),
+            'content': article.text,
+            # 'html': article.html,
+            'title': article.title,
+            'keywords': article.keywords
+        }
+
+        day_data.append(article_data)
+
+    with open(os.path.join('output', 'missing.json'), 'w+') as f:
+        f.write(json.dumps(missing))
+
+    with open(output_path, 'w+') as f:
+        f.write(json.dumps(day_data))
+
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
 
-    parser.add_argument('-u', '--base-url', type=str, required=True, help="base url")
+    #parser.add_argument('-u', '--base-url', type=str, required=True, help="base url")
+
     parser.add_argument('-s', '--since', type=str, required=True, help="start time \%Y-\%m-\%d")
     parser.add_argument('-t', '--to', type=str, required=True, default=None, help="end time \%Y-\%m-\%d")
+
+    parser.add_argument('-f', '--filename', type=str, required=True, help="csv file from twitter_scrap")
+
     # parser.add_argument('-o', '--output', type=str, required=True,  help="username from which to scrape")
 
     args = parser.parse_args()
 
-    collect_news(args.base_url, args.since, args.to)
+    df_urls = pd.read_csv(args.filename)
+
+    df_urls["url"] = df_urls["tweet"].apply(lambda tweet : tweet[tweet.find("http"):].split(" ")[0])
+
+    for url in df_urls["url"]:
+        collect_news_tiny(url, args.since, args.to)    
+
+    # collect_news(args.base_url, args.since, args.to)
     # collect(args.key_word, args.since, args.to, output_file)
