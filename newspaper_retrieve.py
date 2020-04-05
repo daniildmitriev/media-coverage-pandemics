@@ -88,7 +88,7 @@ def collect_news_tiny(url, publish_date_tw, newspaper_name):
 
     publish_date = article.publish_date
     if publish_date is None:
-        publish_date = day
+        publish_date = publish_date_tw
 
     article_data = {
         'url': article.url,
