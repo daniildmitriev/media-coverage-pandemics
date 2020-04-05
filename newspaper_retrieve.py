@@ -70,12 +70,12 @@ def collect_news(base_url, sdate, edate):
         with open(output_path, 'w+') as f:
             f.write(json.dumps(day_data))
 
-def collect_news_tiny(url, sdate, edate):
+def collect_news_tiny(url, publish_date_tw, newspaper_name):
 
     missing = []
     all_urls = []
 
-    output_path = os.path.join('output', url[-5:]+'.json')
+    output_path = os.path.join('output', newspaper_name+url.replace("/", "")[-5:] +'.json')
 
     print(url)
     nn = newspaper.build(url, memoize_articles=False)
@@ -83,6 +83,7 @@ def collect_news_tiny(url, sdate, edate):
     print(len(nn.articles))
 
     day_data = []
+    day = publish_date_tw
     for article in nn.articles:
         # if len(day_data) > 3:
         #     break
@@ -92,7 +93,6 @@ def collect_news_tiny(url, sdate, edate):
             article.parse()
         except Exception as e:
             print(e)
-            missing.append({'base': base_url, 'day': day.strftime("%Y-%m-%d"), 'article_url': article.url})
 
         publish_date = article.publish_date
         if publish_date is None:
@@ -100,7 +100,7 @@ def collect_news_tiny(url, sdate, edate):
 
         article_data = {
             'url': article.url,
-            'publish_data': publish_date.strftime("%Y-%m-%d"),
+            'publish_data': str(publish_date),
             'content': article.text,
             # 'html': article.html,
             'title': article.title,
@@ -125,6 +125,8 @@ if __name__ == '__main__':
     parser.add_argument('-t', '--to', type=str, required=True, default=None, help="end time \%Y-\%m-\%d")
 
     parser.add_argument('-f', '--filename', type=str, required=True, help="csv file from twitter_scrap")
+    parser.add_argument('-i', '--index', type=int, default=0, help="starting csv row")
+    parser.add_argument('-n', '--newpaper', type=str, default="", help="newspaper name")
 
     # parser.add_argument('-o', '--output', type=str, required=True,  help="username from which to scrape")
 
@@ -134,8 +136,9 @@ if __name__ == '__main__':
 
     df_urls["url"] = df_urls["tweet"].apply(lambda tweet : tweet[tweet.find("http"):].split(" ")[0])
 
-    for url in df_urls["url"]:
-        collect_news_tiny(url, args.since, args.to)    
+    for entry in df_urls[args.index:].iterrows():
+        if entry[1]["url"] is not None and "http" in entry[1]["url"]:
+            collect_news_tiny(entry[1]["url"], entry[1]["date"], args.newpaper)
 
     # collect_news(args.base_url, args.since, args.to)
     # collect(args.key_word, args.since, args.to, output_file)
