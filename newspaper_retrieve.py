@@ -6,7 +6,7 @@ import json
 import pandas as pd
 
 import newspaper
-# from newspaper import Article
+from newspaper import Article
 
 webarchive_header = 'http://web.archive.org/web'
 
@@ -76,44 +76,34 @@ def collect_news_tiny(url, publish_date_tw, newspaper_name):
     all_urls = []
 
     output_path = os.path.join('output', newspaper_name+url.replace("/", "")[-5:] +'.json')
-
+    
     print(url)
-    nn = newspaper.build(url, memoize_articles=False)
+    article = Article(entry[1]["url"], language="en")
 
-    print(len(nn.articles))
+    try:
+        article.download()
+        article.parse()
+    except Exception as e:
+        print(e)
 
-    day_data = []
-    day = publish_date_tw
-    for article in nn.articles:
-        # if len(day_data) > 3:
-        #     break
+    publish_date = article.publish_date
+    if publish_date is None:
+        publish_date = day
 
-        try:
-            article.download()
-            article.parse()
-        except Exception as e:
-            print(e)
-
-        publish_date = article.publish_date
-        if publish_date is None:
-            publish_date = day
-
-        article_data = {
-            'url': article.url,
-            'publish_data': str(publish_date),
-            'content': article.text,
-            # 'html': article.html,
-            'title': article.title,
-            'keywords': article.keywords
-        }
-
-        day_data.append(article_data)
+    article_data = {
+        'url': article.url,
+        'publish_data': str(publish_date),
+        'content': article.text,
+        # 'html': article.html,
+        'title': article.title,
+        'keywords': article.keywords
+    }
 
     with open(os.path.join('output', 'missing.json'), 'w+') as f:
         f.write(json.dumps(missing))
 
     with open(output_path, 'w+') as f:
-        f.write(json.dumps(day_data))
+        f.write(json.dumps(article_data))
 
 
 if __name__ == '__main__':
