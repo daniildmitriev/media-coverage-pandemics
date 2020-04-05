@@ -70,12 +70,7 @@ def collect_news(base_url, sdate, edate):
         with open(output_path, 'w+') as f:
             f.write(json.dumps(day_data))
 
-def collect_news_tiny(url, publish_date_tw, newspaper_name):
-
-    missing = []
-    all_urls = []
-
-    output_path = os.path.join('output', newspaper_name+url.replace("/", "")[-5:] +'.json')
+def collect_news_tiny(url, publish_date_tw):
     
     print(url)
     article = Article(entry[1]["url"], language="en")
@@ -92,18 +87,14 @@ def collect_news_tiny(url, publish_date_tw, newspaper_name):
 
     article_data = {
         'url': article.url,
+        'tiny_url' : url,
         'publish_data': str(publish_date),
         'content': article.text,
-        # 'html': article.html,
         'title': article.title,
         'keywords': article.keywords
     }
 
-    with open(os.path.join('output', 'missing.json'), 'w+') as f:
-        f.write(json.dumps(missing))
-
-    with open(output_path, 'w+') as f:
-        f.write(json.dumps(article_data))
+    return article_data
 
 
 if __name__ == '__main__':
@@ -126,9 +117,17 @@ if __name__ == '__main__':
 
     df_urls["url"] = df_urls["tweet"].apply(lambda tweet : tweet[tweet.find("http"):].split(" ")[0])
 
+    lis_articles = []
+
     for entry in df_urls[args.index:].iterrows():
         if entry[1]["url"] is not None and "http" in entry[1]["url"]:
-            collect_news_tiny(entry[1]["url"], entry[1]["date"], args.newpaper)
 
+            lis_articles.append(
+                collect_news_tiny(entry[1]["url"], entry[1]["date"])
+                )
+
+    df_art = pd.DataFrame(data=lis_articles)
+    df_art.to_csv(args.filename[0:-4]+"_articles.csv")
+    
     # collect_news(args.base_url, args.since, args.to)
     # collect(args.key_word, args.since, args.to, output_file)
