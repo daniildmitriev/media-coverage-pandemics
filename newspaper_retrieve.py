@@ -3,9 +3,10 @@ from datetime import timedelta
 import argparse
 import os
 import json
+import pandas as pd
 
 import newspaper
-# from newspaper import Article
+from newspaper import Article
 
 webarchive_header = 'http://web.archive.org/web'
 
@@ -69,16 +70,64 @@ def collect_news(base_url, sdate, edate):
         with open(output_path, 'w+') as f:
             f.write(json.dumps(day_data))
 
+def collect_news_tiny(url, publish_date_tw):
+    
+    print(url)
+    article = Article(entry[1]["url"], language="en")
+
+    try:
+        article.download()
+        article.parse()
+    except Exception as e:
+        print(e)
+
+    publish_date = article.publish_date
+    if publish_date is None:
+        publish_date = publish_date_tw
+
+    article_data = {
+        'url': article.url,
+        'tiny_url' : url,
+        'publish_data': str(publish_date),
+        'content': article.text,
+        'title': article.title,
+        'keywords': article.keywords
+    }
+
+    return article_data
+
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
 
-    parser.add_argument('-u', '--base-url', type=str, required=True, help="base url")
+    #parser.add_argument('-u', '--base-url', type=str, required=True, help="base url")
+
     parser.add_argument('-s', '--since', type=str, required=True, help="start time \%Y-\%m-\%d")
     parser.add_argument('-t', '--to', type=str, required=True, default=None, help="end time \%Y-\%m-\%d")
+
+    parser.add_argument('-f', '--filename', type=str, required=True, help="csv file from twitter_scrap")
+    parser.add_argument('-i', '--index', type=int, default=0, help="starting csv row")
+    parser.add_argument('-n', '--newpaper', type=str, default="", help="newspaper name")
+
     # parser.add_argument('-o', '--output', type=str, required=True,  help="username from which to scrape")
 
     args = parser.parse_args()
 
-    collect_news(args.base_url, args.since, args.to)
+    df_urls = pd.read_csv(args.filename)
+
+    df_urls["url"] = df_urls["tweet"].apply(lambda tweet : tweet[tweet.find("http"):].split(" ")[0])
+
+    lis_articles = []
+
+    for entry in df_urls[args.index:].iterrows():
+        if entry[1]["url"] is not None and "http" in entry[1]["url"]:
+
+            lis_articles.append(
+                collect_news_tiny(entry[1]["url"], entry[1]["date"])
+                )
+
+    df_art = pd.DataFrame(data=lis_articles)
+    df_art.to_csv(args.filename[0:-4]+"_articles.csv")
+    
+    # collect_news(args.base_url, args.since, args.to)
     # collect(args.key_word, args.since, args.to, output_file)
