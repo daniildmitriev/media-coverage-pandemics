@@ -6,11 +6,11 @@ import datetime
 
 
 def collect(username):
-    start_date = datetime.datetime(2009,1,1) # date when twitter was founded
+    start_date = datetime.datetime(2011,6,1) # date when twitter was founded
     threshold = datetime.datetime(2011,12,31)
 
     while start_date < threshold:
-        end_date = start_date + datetime.timedelta(days = 120)
+        end_date = start_date + datetime.timedelta(days = 30)
         c = twint.Config()
         c.Username = username
         c.Until = end_date.strftime("%Y-%m-%d")

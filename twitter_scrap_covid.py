@@ -10,7 +10,7 @@ def collect(username):
     threshold = datetime.datetime(2020,4,5)
 
     while start_date < threshold:
-        end_date = start_date + datetime.timedelta(days = 120)
+        end_date = start_date + datetime.timedelta(days = 30)
         c = twint.Config()
         c.Username = username
         c.Until = end_date.strftime("%Y-%m-%d")
